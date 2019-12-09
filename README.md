@@ -356,7 +356,7 @@ FunkSVD将矩阵分解用于推荐方法推到了新的高度，在实际应用�
 #### Deep Matrix Factorization
 这是南京大学NLP组基于DNN+MF结合做传统评分预测推荐的工作，发表在IJCAI'17上。
 
-由于传统的模型会有信息丢失的问题，所以在这篇文章中，作者通过结合显式反馈和隐式反馈这两种输入，有效的解决了信息丢失的问题。不仅如此，作者还通过结合神经网络，提出了一种新型的矩阵分解模型，称为Deep Matrix Factorization (DMF).
+由于传统的模型会有信息丢失的问题，所以在这篇文章中，作者通过结合显式反馈和隐式反馈这两种输入，有效的解决了信息丢失的问题。不仅如此，作者还通过结合神经网络，提出了一种新型的矩阵分解模型，称为Deep Matrix Factorization (DMF[<sup>3</sup>](#DMF)).
 
 文章的贡献如下：
 1. 利用DMF将显示反馈输入中包含的用户和物品信息非线性地映射到了一个低维空间
@@ -364,6 +364,68 @@ FunkSVD将矩阵分解用于推荐方法推到了新的高度，在实际应用�
 3. 在多个数据集上跑出来的效果都非常可观
 
 **Algorithm**
+
+<image src="img/DMF.jpg">
+
+和绝大多数的深度学习+矩阵分解的方法不同，该模型并没有引入其他信息(side information)来辅助描述用户和物品。作者巧妙地利用评分矩阵的行向量作为用户信息，列向量作为物品信息，分别输入到两个多层神经网络中，进行特征提取，大致步骤如下：
+
+1. 初始化两个神经网络
+2. 将行、列向量 $Y_{i,*}$ ，$Y_{*,j}$ 分别输入到两个神经网络中，一层层进行特征提取，并且确保两个神经网络输出特征的维度一样，此时输出的就是用户特征 $p_i$ 和物品特征 $q_i$ 。
+3. 计算两个特征的相似度，相似度越高，那么用户i越有可能对物品j感兴趣，作者选用余弦相似度描述两者的相似程度：$$
+Y_{i,j} = \frac{p_i^Tq_i^T}{||p_i|| ||q_i||}
+$$
+
+
+#### Deep Neural Networks for YouTube Recommendations
+
+这篇论文 Deep Neural Networks for YouTube Recommendations [<sup>4</sup>](#youtube)是google的YouTube团队在推荐系统上DNN方面的尝试，发表在16年9月的RecSys会议。虽然国内必须翻墙才能登录YouTube，但想必大家都知道这个网站。基本上算是世界范围内视频领域的最大的网站了，坐拥10亿量级的用户，网站内的视频推荐自然是一个非常重要的功能。本文就focus在YouTube视频推荐的DNN算法，文中不但详细介绍了Youtube推荐算法和架构细节，还给了不少practical lessons and insights，很值得精读一番。下图便是YouTube APP视频推荐的一个例子。
+<image src="img/youtube1.jpg">
+
+**系统总览**
+
+整个推荐系统分为candidate generation (matching) 和Ranking两个阶段。Matching阶段通过i2i/u2i/u2u/user profile等方式“粗糙”的召回候选商品，Matching阶段视频的数量是百级别了；Ranking阶段对Matching后的视频采用更精细的特征计算user-item之间的排序分，作为最终输出推荐结果的依据。
+
+<image src="img/youtubeOver.jpg">
+
+
+**Matching**
+
+整个模型架构是包含三个隐层的DNN结构。输入是用户浏览历史、搜索历史、人口统计学信息和其余上下文信息concat成的输入向量；输出分线上和离线训练两个部分。
+
+离线训练阶段输出层为softmax层，输出概率。而线上则直接利用user向量查询相关商品，最重要问题是在性能。我们利用类似局部敏感哈希的算法为用户提供最相关的N个视频。
+
+<image src="img/youtubeArch.jpg">
+
+**Ranking**
+
+Ranking阶段的最重要任务就是精准的预估用户对视频的喜好程度。不同于Matching阶段面临的是百万级的候选视频集，Ranking阶段面对的只是百级别的商品集，因此我们可以使用更多更精细的feature来刻画视频（item）以及用户与视频（user-item）的关系。比如用户可能很喜欢某个视频，但如果list页的用的“缩略图”选择不当，用户也许不会点击，等等。
+
+此外，Matching阶段的来源往往很多，没法直接比较。Ranking阶段另一个关键的作用是能够把不同来源的数据进行有效的ensemble。
+
+在目标的设定方面，单纯CTR指标是有迷惑性的，有些靠关键词吸引用户高点击的视频未必能够被播放。因此设定的目标基本与期望的观看时长相关，具体的目标调整则根据线上的A/B进行调整。
+
+模型如下如：
+<image src="img/youtubeRank.jpg">
+
+
+#### Are We Really Making Much Progress? A Worrying Analysis of Recent Neural Recommendation Approaches[<sup>5</sup>](#AreWe)
+
+推荐系统尤其是深度推荐系统在工业界得到的广泛的应用，相关论文也在各大顶会层出不穷。各种 State-of-the-art 的模型不断的刷新着记录。但是，这些模型的有效性并没有真正的得到验证。
+
+这篇论文复现了近些年顶会的 Top-N 推荐的论文并进行了系统的分析。遗憾的是，顶会上的 18 种推荐算法只有 7 个可以合理的复现。一些算法甚至无法超过基于 KNN 的方法。这不禁使作者发出疑问：我们真的取得了大量的进步吗？
+
+**模型验证**
+
+CMN 是一种混合记忆网络和注意力机制的推荐模型，发表在 SIGIR 2018。作者复现了 CMN 并在三个数据集上进行了验证，结果如 Table 2 所示。
+<image src="img/table2.png">
+
+可以看出，CMN 在大部分的情况下表现并不好，而 UserKNN 和 ItemKNN 表现强劲。
+
+作者还做了一系列其他的验证，结果发现很多方法还不如传统的方法效果好。并且，本文复现并分析了近些年各大顶会的 18 篇推荐论文。结果表明，仅仅有 7 篇论文可以复现，但是其效果并不一定比一些基础推荐算法好。这不禁让作者怀疑深度推荐系统这个领域是否真正的取得了进步。
+
+
+
+## 总结
 
 
 
@@ -373,7 +435,11 @@ FunkSVD将矩阵分解用于推荐方法推到了新的高度，在实际应用�
 
 [2] [Mining Frequent Patterns without Candidate Generation](https://www.cs.sfu.ca/~jpei/publications/sigmod00.pdf) <div id="FP"></div>
 
+[3] [Deep Matrix Factorization Models for Recommender Systems](https://www.ijcai.org/proceedings/2017/447) <div id="DMF"></div>
 
+[4] [Deep Neural Networks for YouTube Recommendations](https://static.googleusercontent.com/media/research.google.com/zh-CN//pubs/archive/45530.pdf) <div id="youtube"></div>
+
+[5] [Are We Really Making Much Progress? A Worrying Analysis of Recent Neural Recommendation Approaches](https://arxiv.org/pdf/1907.06902.pdf) <div id="AreWe"></div>
 
 
 
