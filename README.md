@@ -81,7 +81,7 @@ Confidence(X \rightarrow Y) = P(Y \mid X)
 根据定理1和定理2易知：若 $X \rightarrow Y$ 是强规则，则 $X,Y,XY$ 都必须是频繁项集。
 
 算法如下图：
-<img height="300px" src="img/Apriori.jpg"/>
+<img height="500px" src="img/Apriori .jpg"/>
 
 
 
